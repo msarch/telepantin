@@ -123,8 +123,8 @@ def circle(radius, color, sketch,dx=0, dy=0, ro=0):
 def line(point1, point2, color, sketch, dx=0, dy=0, ro=0):
     l = batch.add(2, GL_LINES, sketch, 'v2f/static', 'c4B/static')
     l.colors= color*2
-    points = [point1, point2]
-    l.vertices=flatten(transform(points, dx, dy, ro))
+    points = (point1, point2)
+    l.vertices = flatten(transform(points, dx, dy, ro))
     if VERBOSE:
         print '    + defining line :', points
     return(l)
@@ -230,7 +230,9 @@ quads = quads_gen(base_pts)
 for i, a, b, c, d, color in quads:
     kaplas.append(quadri(a, b, c, d, color=color, sketch=still))
     if VERBOSE:
-        print i,a,b,c,d,color
+        print '+ quad', i
+        print '    points : ',a,b,c,d
+        print '    color :', color
 
 if VERBOSE:
     labels=[]
@@ -240,51 +242,60 @@ if VERBOSE:
             color=(255, 255, 255, 255), width = 10, height = 10, x=pt.x, y=pt.y))
 
 #generate  a list of horizontal rays from each vert to end_x
-right_x = SCREEN_WIDTH/2
+x1 = SCREEN_WIDTH/2-50
+x2 = x1+100
 rays = []
 edges = edges_gen(base_pts)
 for i, start, end, color in edges:
-    rays.append(line(start, Pt(right_x, start.y), color=color, sketch=still))
-    rays.append(line(end, Pt(right_x, end.y), color=color, sketch=still))
-    rays.append(line(Pt(right_x,start.y), Pt(right_x, end.y), color=color, sketch=still))
-
+    if VERBOSE:
+        print ' + rays' , i
+        print '    start', start
+        print '    end', end
+        print '    color ', color
+    rays.append([
+            line(start, Pt(x1, start.y), color=CLINE, sketch=still),
+            line(end, Pt(x1, end.y), color=CLINE, sketch=still),
+            quadri(Pt(x1,start.y), Pt(x2,start.y), Pt(x2, end.y), Pt(x1, end.y),
+                   color=color, sketch=still)
+            ])
+    print rays[i]
 # TODO:  FIRST LINES DO  NOT ERASE THEMSELVES
-print 'len rays', len(rays)
 
 # scene update ----------------------------------------------------------------
 def scene_update(dt):
     # wheel is rotating
     wheel.ro = alpha
-
     # we need to hard transform each scene point for later access to coordinates
     live_pts = transform(base_pts, dx=0, dy=0, ro=alpha)
     if VERBOSE:
         for i,pt in enumerate(live_pts):
             labels[i].x=pt.x
             labels[i].y=pt.y
-
     # update kaplas vertices from live points
     quads = quads_gen(live_pts)
     for i, a, b, c, d, color in quads:
-        print i,a,b,c,d,color
+        if VERBOSE:
+            print '= updating quad', i
+            print '    points : ',a,b,c,
+            print '    points : ',c,d,a
+            print '    color :', color
         kaplas[i].vertices = (a.x, a.y, b.x, b.y, c.x, c.y, c.x, c.y, d.x, d.y, a.x, a.y)
 
     # update lines from live points only if edge normal points to the right
-    global rays
     edges = edges_gen(live_pts)
     for i,start,end,color in edges:
         if VERBOSE:
-            print ' = ray' , i
+            print ' = updating rays' , i
             print '    start', start
             print '    end', end
             print '    color', color
-        rays[i].vertices = (start.x, start.y, right_x, start.y)
-        rays[i].colors = color*2
-        rays[i+1].vertices = (end.x, end.y, right_x, end.y)
-        rays[i+1].colors = color*2
-        rays[i+2].vertices = (right_x, start.y, right_x, end.y)
-        rays[i+2].colors = color*2
-    print len(rays)
+        if VERBOSE:print '    = updating 2 line verts'
+        rays[i][0].vertices = (start.x, start.y, x1, start.y)
+        if VERBOSE:print '    = updating 2 line verts'
+        rays[i][1].vertices = (end.x, end.y, x1, end.y)
+        if VERBOSE:print '    = updating 6 quads verts'
+        rays[i][2].vertices = (x1, start.y, x2, start.y, x2, end.y,
+                               x2, end.y,   x1, end.y,   x1, start.y)
 
 #        normal = Point(-(end.y-start.y), end.x-start.x)
         #if normal.x > 0:
