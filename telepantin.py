@@ -16,22 +16,26 @@ from collections import namedtuple
 from math import  atan, cos, hypot, pi, sin
 from sys import stdout
 
+Color = namedtuple('Color', 'r g b a')
 Point = namedtuple('Point', 'x y')  # 2 coordinates
 Pt = Point
+Segment = namedtuple('Segment', 'n start end color')
+St = Segment
 
 ORIGIN = Point(0,0)
 OO=ORIGIN
 TWOPI = 2*pi
-BLACK = (  0,   0,   0, 255)
-WHITE = (255, 255, 255, 255)
-CLINE = (125, 125, 100, 100)        # construction lines color
+BLACK = Color(  0,   0,   0, 255)
+WHITE = Color(255, 255, 255, 255)
+CLINE = Color(125, 125, 100, 100)   # construction lines color
 REV_PER_SEC = 0.1                   # angular velocity 0.5= 0.5rev/s
 alpha = 0.0                         # flywheel initial angle
 
 
 # Pyglet Window stuff ---------------------------------------------------------
 batch = pyglet.graphics.Batch()  # holds all graphics
-config = Config(sample_buffers=1, samples=4,depth_size=16, double_buffer=True, mouse_visible=False)
+config = Config(sample_buffers=1, samples=4, depth_size=16,
+                double_buffer=True, mouse_visible=False)
 window = pyglet.window.Window(fullscreen=not(WINDOWED), config=config)
 SCREEN_WIDTH, SCREEN_HEIGHT = window.width, window.height
 
@@ -55,7 +59,9 @@ def on_key_press(key, modifiers):
         print 'user quit'
         pyglet.app.exit()
 
-def update(dt):  # updates an uniform circular motion then calls custom actions
+def update(dt):
+    # alpha is updated at constant speed as in an uniform circular motion
+    # custom scene actions should update using alpha
     global alpha
     if PAUSED: pass
     else:
@@ -71,9 +77,9 @@ class Sketch(pyglet.graphics.Group): # subclass with position/rotation ability
     'sketches' are regular pyglet graphics.Groups whom 'set_state' and
     'unset_state' methods are used to add move and rotate functionnalities.
     '''
-    def __init__(self,pos=ORIGIN, ro=0):  # pos.x,pos.y=coords, ro=rotation angle
+    def __init__(self,pos=ORIGIN, ro=0):  # pos=x,y coords, ro=rot. angle
         super(Sketch, self).__init__()
-        self.pos,self.ro = pos, ro
+        self.pos, self.ro = pos, ro
 
     def set_state(self):
         glPushMatrix()
@@ -90,7 +96,8 @@ class Sketch(pyglet.graphics.Group): # subclass with position/rotation ability
 # non-GL vertex rotation/translation of a list of points
 def transform(pts, dx=0, dy=0, ro=0):
     cosro, sinro = cos(ro*TWOPI/360), sin(ro*TWOPI/360)  #in radians
-    return([Pt(cosro*pt.x-sinro*pt.y+dx, sinro*pt.x+cosro*pt.y+dy)for pt in pts])
+    return([Pt(cosro*pt.x-sinro*pt.y+dx,
+               sinro*pt.x+cosro*pt.y+dy) for pt in pts])
 
 # flatten a list of list : OpenGL vertexes are flat lists of floats
 def flatten(l):
@@ -101,12 +108,12 @@ def flatten(l):
 # Color and vertex positions are later accessible with .colors and .vertices
 # Removing a shapes is done with vertex_list.delete(...)
 def circle(radius, color, sketch,dx=0, dy=0, ro=0):
-        # number of divisions per PI rads (half the circle)
-    stepangle = TWOPI / (int(radius / 5) + 8)  # number of segments depends of size
+    # number of divisions, or segments size decrease w. rad.
+    stepangle = TWOPI / (int(radius / 5) + 8)
     points = [Pt(x=0, y=radius)]  # create list and first element
     phi = 0
     while phi < TWOPI:
-        # because GL_LINES is used, we have to repeat same pt twice :
+        # with GL_LINES we have to repeat same pt twice :
         # end of previous segment + start of next segment
         points.append(Pt(radius * sin(phi), radius * cos(phi)))
         points.append(Pt(radius * sin(phi), radius * cos(phi)))
@@ -151,12 +158,12 @@ def rec(w, h, color, sketch, dx=0, dy=0, ro=0):
 
 # }}} --------------------- END OF STANDARD SHAPES SECTION --------------------
 
-# {{{ ----------------------------- SCENE SECTION -----------------------------
+# {{{ ----------------------- SCENE DATA DEFINITION ---------------------------
 # kapla colors ----------------------------------------------------------------
-k_r  = (255,  69,   0, 255)  # red kapla
-k_g  = (  0,  99,   0, 255)  # green kapla
-k_b  = (  0,   0, 140, 255)  # blue kapla
-k_y  = (255, 214,   0, 255)  # yellow kapla
+kr  = Color(255,  69,   0, 255)  # red kapla
+kg  = Color(  0,  99,   0, 255)  # green kapla
+kb  = Color(  0,   0, 140, 255)  # blue kapla
+ky  = Color(255, 214,   0, 255)  # yellow kapla
 '''
 -------------------------------------------------------------------------------
 geometric data
@@ -185,7 +192,7 @@ i, j, k, l = Pt(-span, -tk2), Pt(-tk2, -tk2), Pt(-tk2,-span), Pt(tk2, -span),
 base_pts = (a,b,c,d,e,f,g,h,i,j,k,l,a)
 
 #edges generator
-edge_color = [k_r, k_r, k_r, k_g, k_g, k_g, k_b, k_b, k_b, k_y, k_y, k_y]
+edge_color = [kr, kr, kr, kg, kg, kg, kb, kb, kb, ky, ky, ky]
 def edges_gen(pts):
     for i in xrange(len(pts)-1):
         yield i, pts[i], pts[i+1], edge_color[i]
@@ -196,7 +203,7 @@ if VERBOSE:
         print '    + edge definition : ', e
 
 # recs generator
-rec_color = [k_r, k_g, k_b, k_y]
+rec_color = [kr, kg, kb, ky]
 def quads_gen(pts):
     for i in range(0,len(pts)-1, 3):
         j=(i+3)/4
@@ -206,13 +213,16 @@ if VERBOSE:
     rcs=quads_gen(base_pts)
     for r in rcs:
         print '    + kapla definition : ', r
-# shapes ----------------------------------------------------------------------
+# sketches --------------------------------------------------------------------
 wheel_center=Pt(SCREEN_WIDTH*0.25, SCREEN_HEIGHT*0.5)
 wheel = Sketch(wheel_center)  # revolving sketch
 still = Sketch(wheel_center)  # 'default' still sketch
 
+# scene shapes ----------------------------------------------------------------
 # half screen line
-line(Pt(wheel_center.x,SCREEN_HEIGHT/2), Pt(wheel_center.x, -SCREEN_HEIGHT/2), color=CLINE, sketch=still)
+line(Pt(wheel_center.x,SCREEN_HEIGHT/2),
+     Pt(wheel_center.x, -SCREEN_HEIGHT/2),
+     color=CLINE, sketch=still)
 
 # circles
 circle(radius=rd2, color=CLINE, sketch=still)
@@ -229,81 +239,119 @@ kaplas=[]
 quads = quads_gen(base_pts)
 for i, a, b, c, d, color in quads:
     kaplas.append(quadri(a, b, c, d, color=color, sketch=still))
+
     if VERBOSE:
-        print '+ quad', i
+        print '+ quad ', i
         print '    points : ',a,b,c,d
         print '    color :', color
 
 if VERBOSE:
     labels=[]
     for i,pt in enumerate(base_pts):
-        labels.append(pyglet.text.Label(str(i), group=still, batch=batch,
-            font_name=['Courier'], font_size=10, anchor_x='center', anchor_y='center',
-            color=(255, 255, 255, 255), width = 10, height = 10, x=pt.x, y=pt.y))
+        labels.append(pyglet.text.Label(str(i),
+            group=still, batch=batch,
+            font_name=['Courier'], font_size=10,color=(255, 255, 255, 255),
+            anchor_x='center', anchor_y='center',
+            x=pt.x, y=pt.y))
 
-#generate  a list of horizontal rays from each vert to end_x
+#generate  a list of horizontal projections from each vert to end_x
 x1 = SCREEN_WIDTH/2-50
 x2 = x1+100
-rays = []
+projections = []
 edges = edges_gen(base_pts)
 for i, start, end, color in edges:
+    projections.append([
+        line(start, Pt(x1, start.y), color=CLINE, sketch=still),
+        line(end, Pt(x1, end.y), color=CLINE, sketch=still),
+        quadri(Pt(x1, start.y), Pt(x2, start.y), Pt(x2, end.y), Pt(x1, end.y),
+        color=color, sketch=still)])
+
     if VERBOSE:
-        print ' + rays' , i
+        print ' + defining projections for edge i' , i
         print '    start', start
         print '    end', end
         print '    color ', color
-    rays.append([
-            line(start, Pt(x1, start.y), color=CLINE, sketch=still),
-            line(end, Pt(x1, end.y), color=CLINE, sketch=still),
-            quadri(Pt(x1,start.y), Pt(x2,start.y), Pt(x2, end.y), Pt(x1, end.y),
-                   color=color, sketch=still)
-            ])
-    print rays[i]
-# TODO:  FIRST LINES DO  NOT ERASE THEMSELVES
+        print '    +', projections[i]
+# }}} -------------------------- END OF SCENE DATA ----------------------------
 
-# scene update ----------------------------------------------------------------
+# {{{ --------------------------- SCENE UPDATE SECTION ------------------------
+def filter_edges(pt_list):
+    '''
+    checks if edge normal is pointing right
+        - if so updates lines and add edge to shortlist
+        - otherwise zero all coords
+    we could use:
+        normal = Point(end.y-start.y,-(end.x-start.x))
+        and check: normal>0
+        but it is equivalent and easyer to check: end.y > start.y
+    '''
+    edges = edges_gen(pt_list)
+    selected=[]
+    for i,start,end,color in edges:
+        if end.y > start.y:
+
+            if VERBOSE:
+                print '+ edge selected:', i
+                print '    = updating 2 lines for edge', i
+
+            projections[i][0].vertices = (start.x, start.y, x1, start.y)
+            projections[i][1].vertices = (end.x, end.y, x1, end.y)
+            selected.append((i,end,start,color))  #reverse segments to keep head up
+
+
+        else:
+
+            if VERBOSE:
+                print '- edge discarded:', i
+                print '    - zeroing all verts for edge', i
+
+            projections[i][0].vertices = (0,0,0,0)
+            projections[i][1].vertices = (0,0,0,0)
+
+
+    return(selected)
+
 def scene_update(dt):
     # wheel is rotating
     wheel.ro = alpha
-    # we need to hard transform each scene point for later access to coordinates
+
+    # hard (non GL) transform all points to have access to coordinates
     live_pts = transform(base_pts, dx=0, dy=0, ro=alpha)
+
+    # show vertices labels
     if VERBOSE:
         for i,pt in enumerate(live_pts):
             labels[i].x=pt.x
             labels[i].y=pt.y
+
     # update kaplas vertices from live points
     quads = quads_gen(live_pts)
     for i, a, b, c, d, color in quads:
-        if VERBOSE:
-            print '= updating quad', i
-            print '    points : ',a,b,c,
-            print '    points : ',c,d,a
-            print '    color :', color
+
+        if VERBOSE: print '= updating quad', i
+
         kaplas[i].vertices = (a.x, a.y, b.x, b.y, c.x, c.y, c.x, c.y, d.x, d.y, a.x, a.y)
 
-    # update lines from live points only if edge normal points to the right
-    edges = edges_gen(live_pts)
-    for i,start,end,color in edges:
-        if VERBOSE:
-            print ' = updating rays' , i
-            print '    start', start
-            print '    end', end
-            print '    color', color
-        if VERBOSE:print '    = updating 2 line verts'
-        rays[i][0].vertices = (start.x, start.y, x1, start.y)
-        if VERBOSE:print '    = updating 2 line verts'
-        rays[i][1].vertices = (end.x, end.y, x1, end.y)
-        if VERBOSE:print '    = updating 6 quads verts'
-        rays[i][2].vertices = (x1, start.y, x2, start.y, x2, end.y,
-                               x2, end.y,   x1, end.y,   x1, start.y)
+    # select edges that project to the right, sort and 'project'
+    filtered_edges = filter_edges(live_pts)
 
-#        normal = Point(-(end.y-start.y), end.x-start.x)
-        #if normal.x > 0:
-            #rays[i].vertices = (start.x, start.y, right_x, start.y)
-            #rays[i+1].vertices = (end.x, end.y, right_x, end.y)
-        #else:
-            #rays[i].vertices = (0,0,0,0)
-            #rays[i+1].vertices = (0,0,0,0)
+    if VERBOSE:
+        print '+ filtered edges :',
+        for e in filtered_edges: print e[0],
+        print
+
+    # sort list by greatest y of greatest of end.y or start.y
+    y_sorted_edges = sorted(filtered_edges, key=lambda edge: max(edge[1].y,edge[2].y))
+    # TODO : sort by y then x (all segments are head up)
+
+    edges = edges_gen(y_sorted_edges)
+
+
+    if VERBOSE:
+        print '+ y sorted edges :',
+        for e in y_sorted_edges: print e[0],
+        print
+
     '''
     ---------------------------------------------------------------------------
     NORMAL VECTOR
@@ -315,7 +363,8 @@ def scene_update(dt):
     The opposite normal vector is: n’=(-dy, dx)
     ---------------------------------------------------------------------------
     '''
-    stdout.write('.')
+
+    if VERBOSE: print': ------------------------------------------------------'
 
 # }}} ------------------------ END OF SCENE SECTION ---------------------------
 
