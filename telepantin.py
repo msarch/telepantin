@@ -438,7 +438,7 @@ def scene_update(dt):
         check if bottom
     '''
 
-# TODO: ordered display list : let openGL do the job
+# TODO: ????? ordered display list : let openGL do the job
 
 
 
