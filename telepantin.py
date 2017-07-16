@@ -14,7 +14,7 @@ PAUSED = False
 PAUSED = True
 
 
-# {{{ -------------------- STANDARD ENGINE SECTION (rev 8) --------------------
+# {{{ -------------------- STANDARD ENGINE SECTION (rev 9) --------------------
 import pyglet
 from pyglet.gl import *
 from collections import namedtuple
@@ -22,13 +22,12 @@ from itertools import cycle
 from math import  atan, cos, hypot, pi, sin
 from sys import stdout
 
-Color = namedtuple('Color', 'r g b a')
-Point = namedtuple('Point', 'x y')  # 2 coordinates
+Color = namedtuple('Color', 'r g b a') # RGB+ alpha (0 to 255)
+Point = namedtuple('Point', 'id x y')  # name + 2 coordinates
 Pt = Point
-Segment = namedtuple('Segment', 'n start end color')
-St = Segment
+Edge = namedtuple('Edge', 'id start end color')
 
-ORIGIN = Point(0,0)
+ORIGIN = Point('O',0,0)
 OO=ORIGIN
 TWOPI = 2*pi
 BLACK = Color(  0,   0,   0, 255)
@@ -75,7 +74,25 @@ def update(dt):
     else:
         alpha +=  dt * REV_PER_SEC * 360  # alpha is in degrees
         if alpha > 360 : alpha -= 360    # stay within [0,360°]
+
+        if VERBOSE:
+            global frame_number, duration
+            frame_number +=1
+            duration += dt
+            print ''
+            print '---------------------------------------------------------------'
+            print '-'
+            print '-                    updating'
+            print '-                    . alpha    :', alpha
+            print '-                    . duration :', duration
+            print '-                    . frame #  :', frame_number
+            print '-                    . FPS      :', 1/dt
+            print '-'
+            print '---------------------------------------------------------------'
+            print ''
+
         scene_update(dt)
+
     draw()
 
 
@@ -99,17 +116,22 @@ class Sketch(pyglet.graphics.Group): # subclass with position/rotation ability
 
 # }}} --------------------- END OF STANDARD ENGINE SECTION --------------------
 
-# {{{ -------------------- STANDARD SHAPES SECTION (rev 4) --------------------
+# {{{ -------------------- STANDARD SHAPES SECTION (rev 5) --------------------
 # Geometry helpers functions --------------------------------------------------
 # non-GL vertex rotation/translation of a list of points
 def transform(pts, dx=0, dy=0, ro=0):
     cosro, sinro = cos(ro*TWOPI/360), sin(ro*TWOPI/360)  #in radians
-    return([Pt(cosro*pt.x-sinro*pt.y+dx,
-               sinro*pt.x+cosro*pt.y+dy) for pt in pts])
+    return([Pt(pt.id,
+               cosro*pt.x-sinro*pt.y+dx,
+               sinro*pt.x+cosro*pt.y+dy)
+               for pt in pts])
+
+def bare(point):  # strips 'id' and returns tuple with x,y coordinates only
+    return ((point[1],point[2]))
 
 # flatten a list of list : OpenGL vertexes are flat lists of floats
 def flatten(l):
-    return([item for sublist in l for item in sublist])
+    return([coord for point in l for coord in bare(point)])
 
 # Circle, outline only --------------------------------------------------------
 # Adding a shape to a sketch(i.e. group) with batch.add returns a vertex list,
@@ -118,15 +140,15 @@ def flatten(l):
 def circle(radius, color, sketch,dx=0, dy=0, ro=0):
     # number of divisions, or segments size decrease w. rad.
     stepangle = TWOPI / (int(radius / 5) + 8)
-    points = [Pt(x=0, y=radius)]  # create list and first element
+    points = [Pt('_', x=0, y=radius)]  # create list and first element
     phi = 0
     while phi < TWOPI:
         # with GL_LINES we have to repeat same pt twice :
         # end of previous segment + start of next segment
-        points.append(Pt(radius * sin(phi), radius * cos(phi)))
-        points.append(Pt(radius * sin(phi), radius * cos(phi)))
+        points.append(Pt('_',radius * sin(phi), radius * cos(phi)))
+        points.append(Pt('_',radius * sin(phi), radius * cos(phi)))
         phi += stepangle
-    points.append(Pt(x=0, y=radius))  # add right side vertex
+    points.append(Pt('_',x=0, y=radius))  # add right side vertex
 
     if VERBOSE:
         print '+', len(points), 'points circle'
@@ -146,7 +168,6 @@ def line(point1, point2, color, sketch, dx=0, dy=0, ro=0):
     l.colors= color*2
     points = (point1, point2)
     l.vertices = flatten(transform(points, dx, dy, ro))
-
     if VERBOSE:
         print '+ line :'
         print '    .', point1
@@ -156,8 +177,8 @@ def line(point1, point2, color, sketch, dx=0, dy=0, ro=0):
 
     return(l)
 
-# Quadri from 4 points, filed with triangles ----------------------------------
-def quadri(a, b, c, d , color, sketch, dx=0, dy=0, ro=0):
+# quadrangle from 4 points, filed with triangles ----------------------------------
+def quadrangle(a, b, c, d , color, sketch, dx=0, dy=0, ro=0):
     r = batch.add(6, pyglet.gl.GL_TRIANGLES, sketch, 'v2f/static', 'c4B/static')
     r.colors = color*6
     points = (a, b, c, c, d, a)
@@ -220,16 +241,17 @@ tk2 = kae * 0.5
 span = tk2+kal
 
 # points data
-a, b, c, d = Pt(tk2, -tk2),   Pt(span,-tk2),  Pt(span, tk2),  Pt(tk2, tk2),
-e, f, g, h = Pt(tk2, span),   Pt(-tk2, span), Pt(-tk2, tk2),  Pt(-span,tk2),
-i, j, k, l = Pt(-span, -tk2), Pt(-tk2, -tk2), Pt(-tk2,-span), Pt(tk2, -span),
+a, b, c = Pt('a',tk2, -tk2),  Pt('b',span,-tk2),  Pt('c',span, tk2)
+d, e, f = Pt('d',tk2, tk2),   Pt('e',tk2, span),  Pt('f',-tk2, span)
+g, h, i = Pt('g',-tk2, tk2),  Pt('h',-span,tk2),  Pt('i',-span, -tk2)
+j, k, l = Pt('j',-tk2, -tk2), Pt('k',-tk2,-span), Pt('l',tk2, -span)
 
 # list of pts counterclockwise from 'a' to 'l' and to 'a' again
 scene_points = (a,b,c,d,e,f,g,h,i,j,k,l,a)
 
 def get_edges(pts, colors):
     for i in xrange(len(pts)-1):
-         yield (i, pts[i], pts[i+1], colors[i])
+        yield (pts[i].id+pts[i+1].id, pts[i], pts[i+1], colors[i])
 
 def get_quads(pts, colors):  # yields number, coords and color
     for i in range(0,len(pts)-1, 3):
@@ -296,14 +318,14 @@ this list should be the result of visible vertexes @ different angle
 '''
 
 # sketches --------------------------------------------------------------------
-wheel_center=Pt(SCREEN_WIDTH*0.25, SCREEN_HEIGHT*0.5)
+wheel_center=Pt('C',SCREEN_WIDTH*0.25, SCREEN_HEIGHT*0.5)
 wheel = Sketch(wheel_center)  # revolving sketch
 still = Sketch(wheel_center)  # 'default' still sketch
 
 # scene shapes ----------------------------------------------------------------
 # half screen line
-line(Pt(wheel_center.x,SCREEN_HEIGHT/2),
-     Pt(wheel_center.x, -SCREEN_HEIGHT/2),
+line(Pt('_',wheel_center.x,SCREEN_HEIGHT/2),
+     Pt('_',wheel_center.x, -SCREEN_HEIGHT/2),
      color=CLINE, sketch=still)
 
 # circles
@@ -314,7 +336,7 @@ circle(radius=rd1, color=CLINE, sketch=still)
 # scene shapes ----------------------------------------------------------------
 
 # four rects in a cross, rotation will be applied to every point @ every dt
-kaplas=[quadri(a, b, c, d, color=clr, sketch=still)
+kaplas=[quadrangle(a, b, c, d, color=clr, sketch=still)
         for num, a, b, c, d, clr in get_quads(scene_points, quads_colors)]
 
 # optional labels
@@ -329,7 +351,33 @@ if VERBOSE:
 
 # }}} ---------------------------- END OF SCENE INIT --------------------------
 
-# {{{ --------------------------- SCENE UPDATE SECTION ------------------------
+# {{{ ------------------------ SCENE HELPERS FUNC -----------------------------
+
+    def update_quads(quads, points, colors):
+        '''
+        updates kaplas vertices from points and colors list
+        '''
+        for i, a,b,c,d,clr in get_quads(points, colors):
+            quads[i].vertices = (a.x, a.y, b.x, b.y, c.x, c.y,
+                                  c.x, c.y, d.x, d.y, a.x, a.y)
+
+
+            if VERBOSE:
+                print '= updated quad', i, 'coords'
+                print '    .', a
+                print '    .', b
+                print '    .', c
+                print '    .', d
+                print '    .', clr
+
+
+        if VERBOSE:
+            # update vertices labels x and y
+            for i,pt in enumerate(points[0: -1]):
+                labels[i].x=int(pt.x)  # int() is MANDATORY to avoid weird results
+                labels[i].y=int(pt.y)
+            print '= updated labels positions'
+
 
 def filter_edges(edges):
     '''
@@ -339,107 +387,151 @@ def filter_edges(edges):
     we just check : normal.x > 0 which is equivalent to: end.y > start.y
     (equality would mean horizontal edge : discarded as not visible)
     '''
-    return ([(n, end, start, clr) for n, start, end, clr in edges if end.y > start.y])
 
-def verticalize_edges(edges):
-    '''
-    replace all edges with artificially verticalized lines @ centroid
-    '''
-    return ([(n, Point((end.x+start.x)/2, max(start.y,end.y)),
-                 Point((end.x+start.x)/2, min(start.y,end.y)),clr)
-                 for n,start,end,clr in edges])
-
-
-def edges_x_sorting(edges):
-    '''
-    get
-    '''
-    pass
-
-def scene_update(dt):
+    facing_edges = [Edge(id, end, start, clr)
+        for id, start, end, clr in edges
+        if end.y > start.y]
 
     if VERBOSE:
-        global frame_number, duration
-        frame_number +=1
-        duration += dt
-        print ''
-        print '---------------------------------------------------------------'
-        print '-'
-        print '-                    updating'
-        print '-                    . alpha    :', alpha
-        print '-                    . duration :', duration
-        print '-                    . frame #  :', frame_number
-        print '-                    . FPS      :', 1/dt
-        print '-'
-        print '---------------------------------------------------------------'
-        print ''
-
-    # wheel sketch is always rotating
-    wheel.ro = alpha
-
-    # move all points
-    # hard (non GL) transform all points to have access to coordinates
-    live_points = transform(scene_points, dx=0, dy=0, ro=alpha)
-
-    # update kaplas vertices from live points
-    for i, a,b,c,d,clr in get_quads(live_points, quads_colors):
-        kaplas[i].vertices = (a.x, a.y, b.x, b.y, c.x, c.y,
-                              c.x, c.y, d.x, d.y, a.x, a.y)
-
-        if VERBOSE:
-            print '= updated quad', i, 'coords'
-            print '    .', a
-            print '    .', b
-            print '    .', c
-            print '    .', d
-            print '    .', clr
-
-    if VERBOSE:
-        # update vertices labels x and y
-        for i,pt in enumerate(live_points[0: -1]):
-            labels[i].x=int(pt.x)  # int() is MANDATORY to avoid weird results
-            labels[i].y=int(pt.y)
-        print '= updated labels positions'
-
-    # update current list of front facing edges
-    facing_edges = filter_edges(get_edges(live_points, edges_colors))
-
-    if VERBOSE:
-        print '= well oriented edges:'
+        print '= selecting only projection facing edges:'
         for e in facing_edges:
            for _ in e : print '    .', _
            print ''
 
-    # verticalize edges
-    vertical_edges = verticalize_edges(facing_edges)
+
+    return (facing_edges)
+
+
+def flip_edges(edges):
+    '''
+    all edges should start from highest point, end at lowest
+    '''
+
+    for e in edges:
+        if e.start.y < e.end.y: e=(edge.id,edge.end,edge.start,edge.color)
+        else: pass
+
+
     if VERBOSE:
-        print '= verticalized edges:'
-        for e in vertical_edges:
+        print '= flipped edges:'
+        for e in edges:
             for _ in e : print '    .', _
             print ''
 
-    # sort edges along y
-    vertical_edges = sorted(vertical_edges , key=lambda e: e[1].y, reverse=True)
+
+    return (edges)
+
+
+def sort_edges(edges):
+    # sort edges along Y
+    sorted_e = sorted(edges , key=lambda e: e[1].y, reverse=True)
+
+
     if VERBOSE:
         print '= Y sorted edges:'
-        for e in vertical_edges:
+        for e in sorted_e:
             for _ in e : print '    .', _
             print ''
 
-    # cut hidden parts
-    '''
-    for e in edge
-        check if e.top is hidden :
-            for rm in rightmost edges:
-                if e.top.y between o.top.y and o.bottom.y :
-                        follow chain from o.bottom
-                            if all remaining  all rm.top and bottom upper than e.top the replace e.top with last in chain
-                            or until rm. lower than e.bottom then remove e
-        check if bottom
-    '''
 
-# TODO: ????? ordered display list : let openGL do the job
+    # sort edges along X
+    sorted_e = sorted(sorted_e , key=lambda e: e[1].x, reverse=True)
 
+
+    if VERBOSE:
+        print '= Y+X sorted edges:'
+        for e in sorted_e:
+            for _ in e : print '    .', _
+            print ''
+
+
+    return(sorted_e)
+
+
+
+# }}} --------------------- END OF SCENE HELPERS FUNCTIONS --------------------
+
+# {{{ ---------------------- SCENE UPDATE SECTION -----------------------------
+
+def scene_update(dt):
+    # wheel sketch is always rotating
+    wheel.ro = alpha
+
+    # hard (non GL) move all points to have access to coordinates
+    live_points = transform(scene_points, dx=0, dy=0, ro=alpha)
+
+    # true rotation of recs : update recs vertices from live points
+    update_quads(kaplas, live_points, quads_colors)
+
+    # --- edges projection to the right ---
+    # 1- shortlist of only front facing edges
+    facing_edges = filter_edges(get_edges(live_points, edges_colors))
+
+    # 2- flip edges, if necessary flip end/start so start is highest point
+    oriented_edges = flip_edges(facing_edges)
+
+    # 3- sort edges.starts along Y and X, highest first then closest first
+    sorted_edges = sort_edges(oriented_edges)
+
+    # cut and stitch hidden parts
+    '''
+    Hidden-line algorithms until 1980's divide edges into line segments by
+    the intersection points of their images, and then test each segment
+    for visibility against each face of the model.
+    Our algorithm is:
+
+    for each edge (i)
+       for each other edge (j)
+
+       +────-──+─────────────────────────────────────-───────────+
+       │edge i |                   edge j                        │
+       +.......+.........+.......+.......+.......+.......+.......+
+       │       │  case1  │ case2 │ case3 │ case4 │ case5 │ case 6│
+       +.......+.........+.......+.......+.......+.......+.......+
+       │       │  start  │ start │ start │       │       │       │
+       │       │   end   │       │       │       │       │       │
+       │ start +---------+-------+-------+-------+-------+-------+
+       │       │    *    │  end  │   X   │ start │   *   │   *   │
+       │       │    *    │   *   │   X   │  end  │ start │   *   │
+       │  end  +---------+-------+-------+-------+-------+-------+
+       │       │         │       │  end  │       │  end  │ start │
+       │       │         │       │       │       │       │  end  │
+       +──────-+─────────+───────+───────+───────+─────-─+───────+
+
+        rules to cut edge i :
+            case1: edge i unchanged
+            case2: edge i.start = j.end
+            case3: delete edge i from list
+            case4: delete edge i from list;
+                   add (i.start,j.start);
+                   add (j.end,i.end)
+            case5: edge i.end = j.start
+            case6: edge i unchanged
+
+       question : is there a benefit in ordering edge centers on X axis?
+
+
+    -     '''
+
+    def check_hidden(point, edges):
+        # if point is not hidden, check_hidden returns 0
+        # if point is hidden, check_hidden returns index of hiding edge
+        pass
+
+    # final list init
+    xalign = SCREEN_WIDTH*0.75
+    i, ppoints, pcolors =0, [],[]
+    while i < len(sorted_edges):
+        # check start
+        hid = check_hidden(sorted_edges[i].start,sorted_edges[i:])
+        if hid:  # add hiding edge to our list
+            ppoints.append(sorted_edges[hid].start)
+            pcolors.append(sorted_edges[hid].color)
+            i = hid
+        else : # hid = 0, add current point is visible, add it to our list
+            ppoints.append(sorted_edges[i].start)
+            pcolors.append(sorted_edges[i].color)
+            i += 1
 
 
 # }}} ----------------------- END OF SCENE UPDATE -----------------------------
@@ -450,4 +542,4 @@ if __name__ == "__main__":
     pyglet.clock.schedule_interval(update, 1.0/120)
     pyglet.app.run()
 
-# vim: set foldmarker={{{,}}} foldlevel=0 foldmethod=marker foldcolumn=5 :
+# vim: set foldmarker={{{,}}} foldmethod=marker foldcolumn=5 :
