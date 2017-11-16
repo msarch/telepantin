@@ -13,130 +13,50 @@ if VERBOSE : frame_number, duration = 0,0
 PAUSED = False
 PAUSED = True
 
-
-# {{{ -------------------- STANDARD ENGINE SECTION (rev 9) --------------------
-import pyglet
-from pyglet.gl import *
-from collections import namedtuple
-from itertools import cycle
-from math import  atan, cos, hypot, pi, sin
-from sys import stdout
-
-Color = namedtuple('Color', 'r g b a') # RGB+ alpha (0 to 255)
-Point = namedtuple('Point', 'id x y')  # name + 2 coordinates
-Pt = Point
-Edge = namedtuple('Edge', 'id start end color')
-
-ORIGIN = Point('O',0,0)
-OO=ORIGIN
-TWOPI = 2*pi
-BLACK = Color(  0,   0,   0, 255)
-WHITE = Color(255, 255, 255, 255)
-CLINE = Color(125, 125, 100, 100)   # construction lines color
-REV_PER_SEC = 0.1                   # angular velocity 0.5= 0.5rev/s
-alpha = 0.0                         # flywheel initial angle
+   # {{{ -------------------- STANDARD SHAPES SECTION (rev 5) --------------------
 
 
-# Pyglet Window stuff ---------------------------------------------------------
-batch = pyglet.graphics.Batch()  # holds all graphics
-config = Config(sample_buffers=1, samples=4, depth_size=16,
-                double_buffer=True, mouse_visible=False)
-window = pyglet.window.Window(fullscreen=not(WINDOWED), config=config)
-SCREEN_WIDTH, SCREEN_HEIGHT = window.width, window.height
-
-glClearColor(*BLACK)  # background color
-glEnable(GL_LINE_SMOOTH)
-glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE)
-glEnable(GL_BLEND)                                  # transparency
-glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)   # transparency
-#glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)          # wireframe view mode
-
-@window.event
-def draw():
-    window.clear()
-    batch.draw()
-
-@window.event
-def on_key_press(key, modifiers):
-    global PAUSED
-    if key == pyglet.window.key.SPACE: PAUSED = not(PAUSED)
-    elif key == pyglet.window.key.A:  # = Q with AZERTY kbd
-        print ''
-        print '* * * * * * * * * * * * * user quit * * * * * * * * * * * * * *'
-        print ''
-        pyglet.app.exit()
-
-def update(dt):
-    # alpha is updated at constant speed as in an uniform circular motion
-    # custom scene actions should update using alpha
-    global alpha
-    if PAUSED: pass
-    else:
-        alpha +=  dt * REV_PER_SEC * 360  # alpha is in degrees
-        if alpha > 360 : alpha -= 360    # stay within [0,360°]
-
-        if VERBOSE:
-            global frame_number, duration
-            frame_number +=1
-            duration += dt
-            print ''
-            print '---------------------------------------------------------------'
-            print '-'
-            print '-                    updating'
-            print '-                    . alpha    :', alpha
-            print '-                    . duration :', duration
-            print '-                    . frame #  :', frame_number
-            print '-                    . FPS      :', 1/dt
-            print '-'
-            print '---------------------------------------------------------------'
-            print ''
-
-        scene_update(dt)
-
-    draw()
-
-
-# Sketch class ----------------------------------------------------------------
-class Sketch(pyglet.graphics.Group): # subclass with position/rotation ability
-    '''
-    'sketches' are regular pyglet graphics.Groups whom 'set_state' and
-    'unset_state' methods are used to add move and rotate functionnalities.
-    '''
-    def __init__(self,pos=ORIGIN, ro=0):  # pos=x,y coords, ro=rot. angle
-        super(Sketch, self).__init__()
-        self.pos, self.ro = pos, ro
-
-    def set_state(self):
-        glPushMatrix()
-        glRotatef(self.ro, 0, 0, 1) # GL rot. in degrees; x,y,z of rot. axis
-        glTranslatef(self.pos.x, self.pos.y, 0) # translate after rotation
-
-    def unset_state(self):
-        glPopMatrix()
-
-# }}} --------------------- END OF STANDARD ENGINE SECTION --------------------
-
-# {{{ -------------------- STANDARD SHAPES SECTION (rev 5) --------------------
 # Geometry helpers functions --------------------------------------------------
-# non-GL vertex rotation/translation of a list of points
+
+# translate + rotate a list of points
+# return new list of points
+# result of rotation/translation is computed (non-GL)
+# ro is in degrees
 def transform(pts, dx=0, dy=0, ro=0):
-    cosro, sinro = cos(ro*TWOPI/360), sin(ro*TWOPI/360)  #in radians
+    cosro, sinro = cos(ro*TWOPI/360), sin(ro*TWOPI/360) #cos() uses radians
     return([Pt(pt.id,
                cosro*pt.x-sinro*pt.y+dx,
                sinro*pt.x+cosro*pt.y+dy)
                for pt in pts])
 
-def bare(point):  # strips 'id' and returns tuple with x,y coordinates only
-    return ((point[1],point[2]))
+# strip point 'id'
+# return tuple with x,y coordinates only
+def bare(point):
+    return ((point.x,point.y))
 
-# flatten a list of list : OpenGL vertexes are flat lists of floats
-def flatten(l):
-    return([coord for point in l for coord in bare(point)])
+# flatten a list of floats
+# returns a continuous list of x(n), y(n) coordinates
+# directly usable as openGL vertex list ie: 'v2f/static'
+def flatten(points):
+    return([coord for point in points for coord in bare(point)])
+
+# get centroid of 2 points
+def midpoint(pt1,pt2):
+    return(Pt('mid'+pt1.id+pt2.id,(pt1.x+pt2.x)*0.5,(pt1.y+pt2.y)*0.5)
+
+
+# Simple Geometry --------------------------------------------------------
+
+'''
+Calling a shape function will add a shape to a Sketch (pyglet graphics group)
+This is done with 'batch.add()' returns a vertex list object,
+Color and vertex positions are later accessible with object.colors and
+object.vertices. Removing a shape is done with vertex_list.delete(...)
+'''
+
 
 # Circle, outline only --------------------------------------------------------
-# Adding a shape to a sketch(i.e. group) with batch.add returns a vertex list,
-# Color and vertex positions are later accessible with .colors and .vertices
-# Removing a shapes is done with vertex_list.delete(...)
+
 def circle(radius, color, sketch,dx=0, dy=0, ro=0):
     # number of divisions, or segments size decrease w. rad.
     stepangle = TWOPI / (int(radius / 5) + 8)
@@ -157,17 +77,20 @@ def circle(radius, color, sketch,dx=0, dy=0, ro=0):
         print '    . color :  ', color
         print ''
 
-        c=batch.add(len(points), GL_LINES, sketch, 'v2f/static', 'c4B/static')
+    c=batch.add(len(points), GL_LINES, sketch, 'v2f/static', 'c4B/static')
     c.colors = color*(len(points))
     c.vertices = flatten(transform(points, dx, dy, ro))
     return(c) # c is a vertex_list since batch.add() returns a vertex_list
 
+
 # Line ------------------------------------------------------------------------
+
 def line(point1, point2, color, sketch, dx=0, dy=0, ro=0):
     l = batch.add(2, GL_LINES, sketch, 'v2f/static', 'c4B/static')
     l.colors= color*2
     points = (point1, point2)
     l.vertices = flatten(transform(points, dx, dy, ro))
+
     if VERBOSE:
         print '+ line :'
         print '    .', point1
@@ -177,7 +100,12 @@ def line(point1, point2, color, sketch, dx=0, dy=0, ro=0):
 
     return(l)
 
-# quadrangle from 4 points, filed with triangles ----------------------------------
+
+# Quadrangle ------------------------------------------------------------------
+'''
+from 4 points,
+filed with triangles
+'''
 def quadrangle(a, b, c, d , color, sketch, dx=0, dy=0, ro=0):
     r = batch.add(6, pyglet.gl.GL_TRIANGLES, sketch, 'v2f/static', 'c4B/static')
     r.colors = color*6
@@ -195,19 +123,25 @@ def quadrangle(a, b, c, d , color, sketch, dx=0, dy=0, ro=0):
 
     return(r) # batch.add() returns a vertex_list
 
-# Rectangle, from width and height filed with triangles -----------------------
+# Rectangle -------------------------------------------------------------------
+'''
+from width and height
+filed with triangles
+'''
 def rec(w, h, color, sketch, dx=0, dy=0, ro=0):
     r = batch.add(6, pyglet.gl.GL_TRIANGLES, sketch, 'v2f/static', 'c4B/static')
     r.colors = color*6
     points = [Pt(p[0],p[1]) for p in ((0,0),(0,h),(w,h),(w,h),(w,0),(0,0))]
     r.vertices = flatten(transform(points, dx, dy, ro))
+
     if VERBOSE:
         print '    + defining rec :', points
+
     return(r) # batch.add() returns a vertex_list
 
 # }}} --------------------- END OF STANDARD SHAPES SECTION --------------------
 
-# {{{ ---------------------------- SCENE INIT ---------------------------------
+# {{{ ---------------------------- SCENE DATA ---------------------------------
 # kapla colors ----------------------------------------------------------------
 kr  = Color(255,  69,   0, 255)  # red kapla
 kg  = Color(  0,  99,   0, 255)  # green kapla
@@ -269,7 +203,7 @@ scene_quads = get_quads(scene_points, quads_colors)
 if VERBOSE:
     print '---------------------------------------------------------------'
     print '-'
-    print '-                        scene init'
+    print '-                        scene data
     print '-'
     print '---------------------------------------------------------------'
 
@@ -423,9 +357,9 @@ def flip_edges(edges):
 
 
 def sort_edges(edges):
-    # sort edges along Y
-    sorted_e = sorted(edges , key=lambda e: e[1].y, reverse=True)
 
+    # first sort edges along X first, from rightmost (+) to leftmost (-)
+    sorted_e = sorted(sorted_e , key=lambda e: e[1].x, reverse=True)
 
     if VERBOSE:
         print '= Y sorted edges:'
@@ -433,9 +367,9 @@ def sort_edges(edges):
             for _ in e : print '    .', _
             print ''
 
-
-    # sort edges along X
-    sorted_e = sorted(sorted_e , key=lambda e: e[1].x, reverse=True)
+    # then sort edges along Y from highest (+) to lowest (-)
+    # former X order will persist after this sorting
+    sorted_e = sorted(edges , key=lambda e: e[1].y, reverse=True)
 
 
     if VERBOSE:
@@ -454,6 +388,9 @@ def sort_edges(edges):
 # {{{ ---------------------- SCENE UPDATE SECTION -----------------------------
 
 def scene_update(dt):
+
+    # --- main movement update section -------------------------------------
+
     # wheel sketch is always rotating
     wheel.ro = alpha
 
@@ -463,75 +400,43 @@ def scene_update(dt):
     # true rotation of recs : update recs vertices from live points
     update_quads(kaplas, live_points, quads_colors)
 
-    # --- edges projection to the right ---
-    # 1- shortlist of only front facing edges
+
+    # --- project edges section --------------------------------------------
+
+    '''
+    1- get shortlist of only front facing edges
+    by filtering backward oriented normal edges
+    '''
     facing_edges = filter_edges(get_edges(live_points, edges_colors))
 
-    # 2- flip edges, if necessary flip end/start so start is highest point
+    '''
+    2- flip edges
+    if necessary flip end/start so highest point is first
+    '''
     oriented_edges = flip_edges(facing_edges)
 
-    # 3- sort edges.starts along Y and X, highest first then closest first
+    '''
+    3- sort edges.starts :
+        highest Y
+        closest to the right CENTROID first if Y's are equal
+    '''
     sorted_edges = sort_edges(oriented_edges)
 
-    # cut and stitch hidden parts
     '''
-    Hidden-line algorithms until 1980's divide edges into line segments by
-    the intersection points of their images, and then test each segment
-    for visibility against each face of the model.
-    Our algorithm is:
+    4- scan edges startpoints
+    for e in sorted_edges:
+        if e.start is visible
+            ppoints.append(e.start)
+            pcolors.append(e.color)
+            for f in sorted_edges with lower edge.start(*)
+                (*)we dont have to check edges with higher y because they
+                cant be in front unless they cross current edge
 
-    for each edge (i)
-       for each other edge (j)
-
-       +────-──+─────────────────────────────────────-───────────+
-       │edge i |                   edge j                        │
-       +.......+.........+.......+.......+.......+.......+.......+
-       │       │  case1  │ case2 │ case3 │ case4 │ case5 │ case 6│
-       +.......+.........+.......+.......+.......+.......+.......+
-       │       │  start  │ start │ start │       │       │       │
-       │       │   end   │       │       │       │       │       │
-       │ start +---------+-------+-------+-------+-------+-------+
-       │       │    *    │  end  │   X   │ start │   *   │   *   │
-       │       │    *    │   *   │   X   │  end  │ start │   *   │
-       │  end  +---------+-------+-------+-------+-------+-------+
-       │       │         │       │  end  │       │  end  │ start │
-       │       │         │       │       │       │       │  end  │
-       +──────-+─────────+───────+───────+───────+─────-─+───────+
-
-        rules to cut edge i :
-            case1: edge i unchanged
-            case2: edge i.start = j.end
-            case3: delete edge i from list
-            case4: delete edge i from list;
-                   add (i.start,j.start);
-                   add (j.end,i.end)
-            case5: edge i.end = j.start
-            case6: edge i unchanged
-
-       question : is there a benefit in ordering edge centers on X axis?
+                if f.start.y < e.end.y
 
 
-    -     '''
+    '''
 
-    def check_hidden(point, edges):
-        # if point is not hidden, check_hidden returns 0
-        # if point is hidden, check_hidden returns index of hiding edge
-        pass
-
-    # final list init
-    xalign = SCREEN_WIDTH*0.75
-    i, ppoints, pcolors =0, [],[]
-    while i < len(sorted_edges):
-        # check start
-        hid = check_hidden(sorted_edges[i].start,sorted_edges[i:])
-        if hid:  # add hiding edge to our list
-            ppoints.append(sorted_edges[hid].start)
-            pcolors.append(sorted_edges[hid].color)
-            i = hid
-        else : # hid = 0, add current point is visible, add it to our list
-            ppoints.append(sorted_edges[i].start)
-            pcolors.append(sorted_edges[i].color)
-            i += 1
 
 
 # }}} ----------------------- END OF SCENE UPDATE -----------------------------
