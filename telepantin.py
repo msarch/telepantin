@@ -2,153 +2,24 @@
 # -*- coding: iso-8859-1 -*-
 # http://www.github.com/msarch/slide
 
+import pyglet
+from shapes import *
+from colors import *
+from canvas import redraw
 # debug flags
-WINDOWED = False
-WINDOWED = True
 VERBOSE = False
 VERBOSE = True
 if VERBOSE : frame_number, duration = 0,0
 
-# initial state
-PAUSED = False
-PAUSED = True
+REV_PER_SEC = 0.1                   # angular velocity 0.5= 0.5rev/s
+alpha = 0.0                         # flywheel initial angle
 
-   # {{{ -------------------- STANDARD SHAPES SECTION (rev 5) --------------------
-
-
-# Geometry helpers functions --------------------------------------------------
-
-# translate + rotate a list of points
-# return new list of points
-# result of rotation/translation is computed (non-GL)
-# ro is in degrees
-def transform(pts, dx=0, dy=0, ro=0):
-    cosro, sinro = cos(ro*TWOPI/360), sin(ro*TWOPI/360) #cos() uses radians
-    return([Pt(pt.id,
-               cosro*pt.x-sinro*pt.y+dx,
-               sinro*pt.x+cosro*pt.y+dy)
-               for pt in pts])
-
-# strip point 'id'
-# return tuple with x,y coordinates only
-def bare(point):
-    return ((point.x,point.y))
-
-# flatten a list of floats
-# returns a continuous list of x(n), y(n) coordinates
-# directly usable as openGL vertex list ie: 'v2f/static'
-def flatten(points):
-    return([coord for point in points for coord in bare(point)])
-
-# get centroid of 2 points
-def midpoint(pt1,pt2):
-    return(Pt('mid'+pt1.id+pt2.id,(pt1.x+pt2.x)*0.5,(pt1.y+pt2.y)*0.5)
-
-
-# Simple Geometry --------------------------------------------------------
-
-'''
-Calling a shape function will add a shape to a Sketch (pyglet graphics group)
-This is done with 'batch.add()' returns a vertex list object,
-Color and vertex positions are later accessible with object.colors and
-object.vertices. Removing a shape is done with vertex_list.delete(...)
-'''
-
-
-# Circle, outline only --------------------------------------------------------
-
-def circle(radius, color, sketch,dx=0, dy=0, ro=0):
-    # number of divisions, or segments size decrease w. rad.
-    stepangle = TWOPI / (int(radius / 5) + 8)
-    points = [Pt('_', x=0, y=radius)]  # create list and first element
-    phi = 0
-    while phi < TWOPI:
-        # with GL_LINES we have to repeat same pt twice :
-        # end of previous segment + start of next segment
-        points.append(Pt('_',radius * sin(phi), radius * cos(phi)))
-        points.append(Pt('_',radius * sin(phi), radius * cos(phi)))
-        phi += stepangle
-    points.append(Pt('_',x=0, y=radius))  # add right side vertex
-
-    if VERBOSE:
-        print '+', len(points), 'points circle'
-        print '    . center :', dx, dy
-        print '    . radius :', radius
-        print '    . color :  ', color
-        print ''
-
-    c=batch.add(len(points), GL_LINES, sketch, 'v2f/static', 'c4B/static')
-    c.colors = color*(len(points))
-    c.vertices = flatten(transform(points, dx, dy, ro))
-    return(c) # c is a vertex_list since batch.add() returns a vertex_list
-
-
-# Line ------------------------------------------------------------------------
-
-def line(point1, point2, color, sketch, dx=0, dy=0, ro=0):
-    l = batch.add(2, GL_LINES, sketch, 'v2f/static', 'c4B/static')
-    l.colors= color*2
-    points = (point1, point2)
-    l.vertices = flatten(transform(points, dx, dy, ro))
-
-    if VERBOSE:
-        print '+ line :'
-        print '    .', point1
-        print '    .', point2
-        print '    .', color
-        print ''
-
-    return(l)
-
-
-# Quadrangle ------------------------------------------------------------------
-'''
-from 4 points,
-filed with triangles
-'''
-def quadrangle(a, b, c, d , color, sketch, dx=0, dy=0, ro=0):
-    r = batch.add(6, pyglet.gl.GL_TRIANGLES, sketch, 'v2f/static', 'c4B/static')
-    r.colors = color*6
-    points = (a, b, c, c, d, a)
-    r.vertices = flatten(transform(points, dx, dy, ro))
-
-    if VERBOSE:
-        print '+ quad '
-        print '    .', a
-        print '    .', b
-        print '    .', c
-        print '    .', d
-        print '    .', color
-        print ''
-
-    return(r) # batch.add() returns a vertex_list
-
-# Rectangle -------------------------------------------------------------------
-'''
-from width and height
-filed with triangles
-'''
-def rec(w, h, color, sketch, dx=0, dy=0, ro=0):
-    r = batch.add(6, pyglet.gl.GL_TRIANGLES, sketch, 'v2f/static', 'c4B/static')
-    r.colors = color*6
-    points = [Pt(p[0],p[1]) for p in ((0,0),(0,h),(w,h),(w,h),(w,0),(0,0))]
-    r.vertices = flatten(transform(points, dx, dy, ro))
-
-    if VERBOSE:
-        print '    + defining rec :', points
-
-    return(r) # batch.add() returns a vertex_list
-
-# }}} --------------------- END OF STANDARD SHAPES SECTION --------------------
-
-# {{{ ---------------------------- SCENE DATA ---------------------------------
 # kapla colors ----------------------------------------------------------------
 kr  = Color(255,  69,   0, 255)  # red kapla
 kg  = Color(  0,  99,   0, 255)  # green kapla
 kb  = Color(  0,   0, 140, 255)  # blue kapla
 ky  = Color(255, 214,   0, 255)  # yellow kapla
 '''
--------------------------------------------------------------------------------
 geometric data
 
         f--4---e
@@ -203,7 +74,7 @@ scene_quads = get_quads(scene_points, quads_colors)
 if VERBOSE:
     print '---------------------------------------------------------------'
     print '-'
-    print '-                        scene data
+    print '-                        scene data'
     print '-'
     print '---------------------------------------------------------------'
 
@@ -283,10 +154,11 @@ if VERBOSE:
             anchor_x='center', anchor_y='center',
             x=pt.x, y=pt.y))
 
-# }}} ---------------------------- END OF SCENE INIT --------------------------
+# -------------------------------- END OF SCENE INIT --------------------------
 
-# {{{ ------------------------ SCENE HELPERS FUNC -----------------------------
-
+# -----------------------------------------------------------------------------
+# ----------------------------- SCENE HELPERS FUNC ----------------------------
+# -----------------------------------------------------------------------------
     def update_quads(quads, points, colors):
         '''
         updates kaplas vertices from points and colors list
@@ -382,14 +254,43 @@ def sort_edges(edges):
     return(sorted_e)
 
 
+# ---------------------------- END OF HELPERS FUNCTIONS -----------------------
 
-# }}} --------------------- END OF SCENE HELPERS FUNCTIONS --------------------
+# -----------------------------------------------------------------------------
+# -------------------------------- UPDATE SECTION -----------------------------
+# -----------------------------------------------------------------------------
+def update(dt):
+    # alpha is updated at constant speed as in an uniform circular motion
+    # custom scene actions should update using alpha
+    global alpha
+    if PAUSED: pass
+    else:
+        alpha +=  dt * REV_PER_SEC * 360  # alpha is in degrees
+        if alpha > 360 : alpha -= 360    # stay within [0,360°]
 
-# {{{ ---------------------- SCENE UPDATE SECTION -----------------------------
+        if VERBOSE:
+            global frame_number, duration
+            frame_number +=1
+            duration += dt
+            print ''
+            print '-----------------------------------------------------------'
+            print '-'
+            print '-                    updating'
+            print '-                    . alpha    :', alpha
+            print '-                    . duration :', duration
+            print '-                    . frame #  :', frame_number
+            print '-                    . FPS      :', 1/dt
+            print '-'
+            print '-----------------------------------------------------------'
+            print ''
+
+        scene_update(dt)
+
+    redraw()
 
 def scene_update(dt):
 
-    # --- main movement update section -------------------------------------
+    # --- main movement update section ----------------------------------------
 
     # wheel sketch is always rotating
     wheel.ro = alpha
@@ -401,7 +302,7 @@ def scene_update(dt):
     update_quads(kaplas, live_points, quads_colors)
 
 
-    # --- project edges section --------------------------------------------
+    # --- project edges section -----------------------------------------------
 
     '''
     1- get shortlist of only front facing edges
@@ -437,14 +338,13 @@ def scene_update(dt):
 
     '''
 
+# ---------------------------  END OF SCENE UPDATE  ---------------------------
 
-
-# }}} ----------------------- END OF SCENE UPDATE -----------------------------
-
-
+# -----------------------------------------------------------------------------
 #---------------------------------- MAIN --------------------------------------
+# -----------------------------------------------------------------------------
 if __name__ == "__main__":
     pyglet.clock.schedule_interval(update, 1.0/120)
     pyglet.app.run()
 
-# vim: set foldmarker={{{,}}} foldmethod=marker foldcolumn=5 :
+# vim: set foldmarker={{{,}}} foldmethod=marker foldcolumn=4 :
