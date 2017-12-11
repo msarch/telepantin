@@ -1,15 +1,20 @@
 #/usr/bin/python
 # -*- coding: iso-8859-1 -*-
 
-# -------------------- STANDARD PYGLET CANVAS ENGINE (rev X) ------------------
 
+# -------------------- STANDARD PYGLET CANVAS ENGINE (rev X) ------------------
 import pyglet
 from pyglet.gl import *
 from collections import namedtuple
 from colors import BACKGROUND_COLOR
 
-Point = namedtuple('Point', 'x y')  # name, x coord, y coord
+# Point is used all over to store x,y coords
+Point = namedtuple('Pt', 'x y')  # name, x coord, y coord
 Pt = Point
+
+# Canvas yelds a regular rotation angle value
+REV_PER_SEC = 0.1                   # angular velocity 0.5= 0.5rev/s
+alpha = 0.0                         # flywheel initial angle
 
 # initial state
 CANVAS_PAUSED = True
@@ -27,6 +32,7 @@ glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE)
 glEnable(GL_BLEND)                                  # transparency
 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)   # transparency
 #glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)          # wireframe only mode
+
 @CANVAS.event
 def redraw(dt):
     CANVAS.clear()
@@ -44,6 +50,9 @@ def on_key_press(key, modifiers):
 
 BATCH = pyglet.graphics.Batch()  # holds all vertex lists
 
+def run():
+    pyglet.clock.schedule_interval(redraw, 1.0/120)
+    pyglet.app.run()
 
 # Sketch class ----------------------------------------------------------------
 class Sketch(pyglet.graphics.Group): # subclass with position/rotation ability
@@ -70,8 +79,8 @@ ORIGIN = Point(0,0)
 
 print '+ canvas.py loaded'
 
+
 #---------------------------------- MAIN --------------------------------------
 if __name__ == "__main__":
-    pyglet.clock.schedule_interval(redraw, 1.0/120)
-    pyglet.app.run()
+    run()
 

@@ -2,7 +2,6 @@
 # -*- coding: iso-8859-1 -*-
 
 
-
 # ------------------------- STANDARD COLORS (rev 1) ---------------------------
 from collections import namedtuple
 
