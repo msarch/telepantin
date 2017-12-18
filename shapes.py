@@ -41,19 +41,20 @@ object.vertices.
 
 '''
 
-from math import  cos, pi, sin
-from collections import namedtuple
+from math import pi, cos, sin
 import pyglet
 from pyglet.gl import *
-from canvas import BACKGROUND, ORIGIN, CANVAS_CENTER, BATCH, Pt, run
-from colors import *
+from colors import CLINE
+from canvas import  Point, Pt, BACKGROUND
 
-Edge = namedtuple('Edge', 'id start end color') # name + 2 pts + color
+BATCH = pyglet.graphics.Batch()  # holds all vertex lists
 TWOPI = 2*pi
+ORIGIN = Point(0,0)
 
-drawto = BACKGROUND  # current Sketch new shapes will be added to
-moveto = ORIGIN      # current location
-headto = 0           # current angle in degrees
+drawto = BACKGROUND              # current Sketch new shapes will be added to
+moveto = ORIGIN                  # current location
+headto = 0                       # current angle in degrees
+
 
 # Geometry helpers functions --------------------------------------------------
 def transform(pts, dx=0, dy=0, ro=0):
@@ -78,8 +79,6 @@ def flatten(points):
 def midpoint(pt1,pt2):
     # get centroid of 2 points
     return(Pt((pt1.x+pt2.x)*0.5,(pt1.y+pt2.y)*0.5))
-
-
 
 
 # Circle ----------------------------------------------------------------------
@@ -144,20 +143,21 @@ def rec(w, h, color):
     print '+ rec :', points, '; x,y =', moveto.x, moveto.y
     return(r) # batch.add() returns a vertex_list
 
-# Test ------------------------------------------------------------------------
-def test():
+print '+ shapes.py loaded'
 
-    # half screen line
-    # circles
+#---------------------------------- MAIN --------------------------------------
+def test(dt):
+    redraw(BATCH)
+
+if __name__ == "__main__":
+
+    from canvas import CANVAS_CENTER, redraw, run
+
     circle(radius=100, color=CLINE)
     line(Pt(-CANVAS_CENTER.x, 100), Pt(CANVAS_CENTER.x, 100), color=CLINE)
     rec(w=10, h=400, color=CLINE)
     quad(Pt(-100,100), Pt(100,100),Pt(100,-100), Pt(-100,-100), color=CLINE)
 
-
-print '+ shapes.py loaded'
-#---------------------------------- MAIN --------------------------------------
-if __name__ == "__main__":
-    test()
+    pyglet.clock.schedule_interval(test,1.0/60)
     run()
 

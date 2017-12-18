@@ -13,4 +13,3 @@ CLINE = Color(125, 125, 100, 100)   # construction lines color
 BACKGROUND_COLOR = Color(0, 0, 0, 255)
 
 print '+ colors.py loaded'
-
