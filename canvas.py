@@ -5,6 +5,7 @@
 # -------------------- STANDARD PYGLET CANVAS ENGINE (rev X) ------------------
 import pyglet
 from pyglet.gl import *
+from pyglet.graphics import Batch
 from collections import namedtuple
 from colors import *
 
@@ -33,9 +34,9 @@ glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)   # transparency
 #glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)          # wireframe only mode
 
 @CANVAS.event
-def redraw(batch):
+def redraw():
     CANVAS.clear()
-    batch.draw()
+    BATCH.draw()
 
 @CANVAS.event
 def on_key_press(key, modifiers):
@@ -76,11 +77,11 @@ class Sketch(pyglet.graphics.Group): # subclass with position/rotation ability
 
 
 BACKGROUND = Sketch()            # default sketch
-
+BATCH = Batch()                  # holds all vertex lists
 print '+ canvas.py loaded'
 
 
-#---------------------------------- MAIN --------------------------------------
+#-------------------------- MAIN for SELF-TESTING -----------------------------
 if __name__ == "__main__":
     redraw()
     run()
