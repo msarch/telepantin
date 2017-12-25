@@ -40,10 +40,10 @@ def redraw():
 
 @CANVAS.event
 def on_key_press(key, modifiers):
-    global CANVAS_PAUSED
     if key == pyglet.window.key.SPACE:
-        CANVAS_PAUSED = not(CANVAS_PAUSED)
-        print '+ key pressed : ___'
+        global CANVAS_PAUSED
+        CANVAS_PAUSED = not CANVAS_PAUSED
+        print '+ key pressed :  ___'
     elif key == pyglet.window.key.ESCAPE:  # = Q with AZERTY kbd
         print '+ key pressed :  ESC'
         print ''

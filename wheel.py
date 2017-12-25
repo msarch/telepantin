@@ -41,37 +41,20 @@ d, e, f = Pt( tk2,  tk2), Pt(tk2, span),  Pt(-tk2, span)
 g, h, i = Pt(-tk2,  tk2), Pt(-span,tk2),  Pt(-span, -tk2)
 j, k, l = Pt(-tk2, -tk2), Pt(-tk2,-span), Pt(tk2, -span)
 
-# list of vtx counterclockwise from 'a' to 'l' and to 'a' again
-k_vertex = (a,b,c,d,e,f,g,h,i,j,k,l,a)
-
 # colors
 kr  = Color(255,  69,   0, 255)  # red kapla
 kg  = Color(  0,  99,   0, 255)  # green kapla
 kb  = Color(  0,   0, 140, 255)  # blue kapla
 ky  = Color(255, 214,   0, 255)  # yellow kapla
-quads_colors = (kr, kg, kb, ky)    # quads colors
-edges_colors = (kr, kr, kr, kg, kg, kg, kb, kb, kb, ky, ky, ky)
 
+# list of vtx counterclockwise
+all_verts = (a,b,c,d,e,f,g,h,i,j,k,l)
+all_colors = (kr, kg, kb, ky)
 
-def get_edges(vtx):
-    '''
-    yelds edges
-    making pairs of vertex from a suite
-    '''
-    for i in xrange(len(vtx)-1):
-        yield (vtx[i], vtx[i+1], edges_colors[i])
+def quads_from_points((a,b,c,d,e,f,g,h,i,j,k,l)):
+    return ((a,b,c,d), (d,e,f,g), (g,h,i,j), (j,k,l,a))
 
-def get_quads(vtx):
-    # yields number, coords and color
-    for i in range(0,len(vtx)-1, 3):
-        yield ((vtx[i], vtx[i+1], vtx[i+2], vtx[i+3], quads_colors[(i+3)/4]))
-
-# edges
-scene_edges = get_edges(k_vertex)
-
-# quads
-scene_quads = get_quads(k_vertex)
-
+all_quads= quads_from_points(all_verts)
 
 '''
 II. sketches ------------------------------------------------------------------
@@ -85,13 +68,8 @@ def init():
     moveto(Pt(CANVAS_WIDTH*0.16,0))   # new current location
     circle(radout, color=CLINE)
     circle(radin, color=CLINE)
-
-    # four rects in a cross, rotation will be applied to every point @ every dt
-    kaplas=[quad(a, b, c, d, color=clr)
-            for  a, b, c, d, clr in get_quads(k_vertex)]
-
-    return(kaplas)
-
+    qds=[quad(a, b, c, d, color=clr) for q, clr in zip(all_quads,all_colors)]
+    return(qds)
 
 # -------------------------------- UPDATE SECTION -----------------------------
 def filter_edges(edges):

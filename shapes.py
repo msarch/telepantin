@@ -84,12 +84,6 @@ def moveto(point):
     _moveto = point
     print '+ moveto :', point
 
-def update_vertices(sh,vtx):
-    sh.vertices=flatten(vtx)
-
-
-
-
 
 # Circle ----------------------------------------------------------------------
 def circle(radius, color):
@@ -141,17 +135,13 @@ def quad(a, b, c, d, color):
     print '+ quad :', a, b ,c ,d
     return(q) # returns the vertex_list
 
-def quad_vertices_renew(quad, vtx):
+def update_quad_verts(quad, vtx):
     '''
     updates kaplas vertices from 4 points
     '''
-    quad.vertices = (
-            vtx[0].x, vtx[0].y,
-            vtx[1].x, vtx[1].y,
-            vtx[2].x, vtx[2].y,
-            vtx[2].x, vtx[2].y,
-            vtx[3].x, vtx[3].y,
-            vtx[0].x, vtx[0].y)
+    quad.vertices = flatten(transform(
+        [vtx[0], vtx[1], vtx[2], vtx[2], vtx[3], vtx[0]],
+        _moveto.x, _moveto.y, _headto))
 
 # Rectangle -------------------------------------------------------------------
 def rec(w, h, color):
