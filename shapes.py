@@ -121,6 +121,12 @@ def line(point1, point2, color):
     print '+ line : from', point1, 'to', point2
     return(l)
 
+def update_line_verts(l, vtx):
+    '''
+    updates kaplas vertices from 2 points
+    '''
+    l.vertices = flatten(transform(vtx, _moveto.x, _moveto.y, _headto))
+
 
 # Quadrangle ------------------------------------------------------------------
 def quad(a, b, c, d, color):
@@ -143,7 +149,7 @@ def update_quad_verts(quad, vtx):
         [vtx[0], vtx[1], vtx[2], vtx[2], vtx[3], vtx[0]],
         _moveto.x, _moveto.y, _headto))
 
-# Rectangle -------------------------------------------------------------------
+# Rec tangle -------------------------------------------------------------------
 def rec(w, h, color):
     '''
     from width and height
@@ -161,7 +167,7 @@ print '+ shapes.py loaded'
 
 
 #-------------------------- MAIN for SELF-TESTING -----------------------------
-def update(dt):
+def _update(dt):
     redraw()
 
 if __name__ == "__main__":
@@ -174,6 +180,6 @@ if __name__ == "__main__":
     rec(w=10, h=400, color=CLINE)
     quad(Pt(-100,100), Pt(100,100),Pt(100,-100), Pt(-100,-100), color=CLINE)
 
-    schedule_interval(update,1.0/60)
+    schedule_interval(_update,1.0/60)
     run()
 

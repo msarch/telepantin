@@ -42,10 +42,10 @@ g, h, i = Pt(-tk2,  tk2), Pt(-span,tk2),  Pt(-span, -tk2)
 j, k, l = Pt(-tk2, -tk2), Pt(-tk2,-span), Pt(tk2, -span)
 
 # colors
-kr  = Color(255,  69,   0, 255)  # red kapla
-kg  = Color(  0,  99,   0, 255)  # green kapla
-kb  = Color(  0,   0, 140, 255)  # blue kapla
-ky  = Color(255, 214,   0, 255)  # yellow kapla
+kr  = Color(255,  69,   0, 155)  # red kapla
+kg  = Color(  0,  99,   0, 155)  # green kapla
+kb  = Color(  0,   0, 140, 155)  # blue kapla
+ky  = Color(255, 214,   0, 155)  # yellow kapla
 
 # list of vtx counterclockwise
 all_verts = (a,b,c,d,e,f,g,h,i,j,k,l)
@@ -56,11 +56,14 @@ def quads_from_points((a,b,c,d,e,f,g,h,i,j,k,l)):
 
 all_quads= quads_from_points(all_verts)
 
-'''
-II. sketches ------------------------------------------------------------------
-'''
-def init():
+def quad_spine(q):
+    return (min(q, key=lambda x: x[1]), max(q, key=lambda x: x[1]))
 
+
+'''
+II. init ----------------------------------------------------------------------
+'''
+def init_constructions():
     # construction lines
     line(Pt(-CANVAS_WIDTH*0.16,CANVAS_HEIGHT/2),
          Pt(-CANVAS_WIDTH*0.16, -CANVAS_HEIGHT/2),
@@ -68,8 +71,18 @@ def init():
     moveto(Pt(CANVAS_WIDTH*0.16,0))   # new current location
     circle(radout, color=CLINE)
     circle(radin, color=CLINE)
+
+def init_kaplas():
+    moveto(Pt(CANVAS_WIDTH*0.16,0))   # new current location
     qds=[quad(a, b, c, d, color=clr) for q, clr in zip(all_quads,all_colors)]
     return(qds)
+
+def init_spines():
+    moveto(Pt(CANVAS_WIDTH*0.16,0))   # new current location
+    lns = [line(*quad_spine(q), color=clr)
+            for q, clr in zip(all_quads,all_colors)]
+    return(lns)
+
 
 # -------------------------------- UPDATE SECTION -----------------------------
 def filter_edges(edges):
@@ -159,7 +172,7 @@ def sort_edges(edges):
     '''
 
 #-------------------------- MAIN for SELF-TESTING -----------------------------
-def update(dt):
+def _update(dt):
     redraw()
 
 if __name__ == "__main__":
@@ -168,6 +181,6 @@ if __name__ == "__main__":
     from pyglet.clock import schedule_interval
 
     init()
-    schedule_interval(update,1.0/60)
+    schedule_interval(_update,1.0/60)
     run()
 
