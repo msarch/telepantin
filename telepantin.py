@@ -5,7 +5,7 @@
 from pyglet.clock import schedule_interval
 import canvas
 import wheel
-from wheel import all_verts, quads_from_points, quad_spine
+from wheel import all_verts, quads_from_points, spine_from_quad, count
 from shapes import transform, update_quad_verts, update_line_verts
 
 alpha = 0.0                         # flywheel initial angle
@@ -28,11 +28,15 @@ def update(dt):
         # hard (non GL) move all points to have access to coordinates
         live_verts = transform(all_verts, dx=0, dy=0, ro=alpha)
         live_quads = quads_from_points(live_verts)
+        live_spines = [spine_from_quad(q) for q in live_quads]
         # true rotation of recs : update recs vertices from live points
         [update_quad_verts(k,q) for k,q in zip(kaplas,live_quads)]
+        # true update of spine lines
+        [update_line_verts(s,l) for s,l in zip(spines,live_spines)]
 
-        #make simple lines
-        [update_line_verts(l,quad_spine(q)) for l,q in zip(spines,live_quads)]
+        count(live_spines)
+
+# "~/Downloads/to file/py/2d visibility/2d Visibility.webarchive"
 
     canvas.redraw()
 

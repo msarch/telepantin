@@ -42,10 +42,11 @@ g, h, i = Pt(-tk2,  tk2), Pt(-span,tk2),  Pt(-span, -tk2)
 j, k, l = Pt(-tk2, -tk2), Pt(-tk2,-span), Pt(tk2, -span)
 
 # colors
-kr  = Color(255,  69,   0, 155)  # red kapla
-kg  = Color(  0,  99,   0, 155)  # green kapla
-kb  = Color(  0,   0, 140, 155)  # blue kapla
-ky  = Color(255, 214,   0, 155)  # yellow kapla
+kr  = Color(255,  69,   0, 255)  # red kapla
+kg  = Color(  0,  99,   0, 255)  # green kapla
+kb  = Color(  0,   0, 140, 255)  # blue kapla
+ky  = Color(255, 214,   0, 255)  # yellow kapla
+trans = Color(0,0,0,0)
 
 # list of vtx counterclockwise
 all_verts = (a,b,c,d,e,f,g,h,i,j,k,l)
@@ -56,12 +57,9 @@ def quads_from_points((a,b,c,d,e,f,g,h,i,j,k,l)):
 
 all_quads= quads_from_points(all_verts)
 
-def quad_spine(q):
-    return (min(q, key=lambda x: x[1]), max(q, key=lambda x: x[1]))
-
 
 '''
-II. init ----------------------------------------------------------------------
+II. shapes init ---------------------------------------------------------------
 '''
 def init_constructions():
     # construction lines
@@ -74,48 +72,34 @@ def init_constructions():
 
 def init_kaplas():
     moveto(Pt(CANVAS_WIDTH*0.16,0))   # new current location
-    qds=[quad(a, b, c, d, color=clr) for q, clr in zip(all_quads,all_colors)]
-    return(qds)
+    kpl=[quad(a, b, c, d, color=trans) for q, clr in zip(all_quads,all_colors)]
+    return(kpl)
 
 def init_spines():
     moveto(Pt(CANVAS_WIDTH*0.16,0))   # new current location
-    lns = [line(*quad_spine(q), color=clr)
+    lns = [line(*spine_from_quad(q), color=clr)
             for q, clr in zip(all_quads,all_colors)]
     return(lns)
 
 
-# -------------------------------- UPDATE SECTION -----------------------------
-def filter_edges(edges):
-    '''
-    returns edge shortlist of edges with normal pointing right
-    (i.e. : eliminates those invisible from the right side)
-    normal vector is : (end.y-start.y, -(end.x-start.x))
-    we just check : normal.x > 0 which is equivalent to: end.y > start.y
-    (equality would mean horizontal edge : discarded as not visible)
-    '''
-    facing_edges = [Edge(id, end, start, clr)
-        for id, start, end, clr in edges
-        if end.y > start.y]
-    print '= selecting only projection facing edges:'
-    for e in facing_edges:
-       for _ in e : print '    .', _
-       print ''
-    return (facing_edges)
 
 
-def flip_edges(edges):
-    '''
-    all edges should start from highest point, end at lowest
-    '''
-    for e in edges:
-        if e.start.y < e.end.y: e=(edge.id,edge.end,edge.start,edge.color)
-        else: pass
-    print '= flipped edges:'
-    for e in edges:
-        for _ in e : print '    .', _
-        print ''
-    return (edges)
+# ########################### WIP BELLOW ######################################
+'''
+III. 2d visibility helper functions -------------------------------------------
+'''
+def spine_from_quad(q,clr):
+    return (min(q, key=lambda x: x[1]), max(q, key=lambda x: x[1]), clr)
 
+
+def count(spines):
+    '''
+    first : spines to list of points
+    '''
+    pts =[coord for point in spines for coord in point]
+    pts_n_clr = zip(pts, all_color)
+    # first sort points along Y first, from upper (+) to lower (-)
+    print pts
 
 def sort_edges(edges):
     # first sort edges along X first, from rightmost (+) to leftmost (-)
@@ -134,8 +118,7 @@ def sort_edges(edges):
     return(sorted_e)
 
 
-
-    # project edges section ---------------------------------------------------
+# project edges section -------------------------------------------------------
 
     '''
     1- get shortlist of only front facing edges
@@ -180,7 +163,7 @@ if __name__ == "__main__":
     from canvas import redraw, run
     from pyglet.clock import schedule_interval
 
-    init()
+    init_constructions()
     schedule_interval(_update,1.0/60)
     run()
 
