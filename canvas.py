@@ -13,7 +13,7 @@ from colors import *
 Point = namedtuple('Pt', 'x y')  # name, x coord, y coord
 Pt = Point
 
-Edge = namedtuple('Edge', 'id start end color') # name + 2 pts + color
+Edge = namedtuple('Edge', 'start end') # 2 pts
 
 BACKGROUND_COLOR = BLACK
 

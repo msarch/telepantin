@@ -9,7 +9,7 @@ Color = namedtuple('Color', 'r g b a') # RGB+ alpha (0 to 255)
 
 BLACK = Color(  0,   0,   0, 255)
 WHITE = Color(255, 255, 255, 255)
-CLINE = Color(125, 125, 100, 100)   # construction lines color
+C0 = Color(125, 125, 100, 100)   # construction lines color
 BACKGROUND_COLOR = Color(0, 0, 0, 255)
 
 print '+ colors.py loaded'
@@ -24,37 +24,36 @@ To use code like this, you can do something like
 
 '''
 
-class tt:
-    HEADER = '\033[95m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    FAIL = '\033[91m'
-    BOLD = '\033[1m'
+class Term:
 
-    UNDERLINE = '\033[4m'
-    RESET = '\033[0m'
-    black='\033[30m'
-    red='\033[31m'
-    green='\033[32m'
-    orange='\033[33m'
-    blue='\033[34m'
-    purple='\033[35m'
-    cyan='\033[36m'
-    lightgrey='\033[37m'
-    darkgrey='\033[90m'
+    RED='\033[31m'
     lightred='\033[91m'
-    lightgreen='\033[92m'
-    lightblue='\033[94m'
     pink='\033[95m'
+    GREEN = '\033[92m'
+    green='\033[32m'
+    lightgreen='\033[92m'
+    BLUE = '\033[94m'
+    blue='\033[34m'
+    lightblue='\033[94m'
+    cyan='\033[36m'
     lightcyan='\033[96m'
+    purple='\033[35m'
+    YELLOW = '\033[93m'
+    orange='\033[33m'
+    BLACK='\033[30m'
+    darkgrey='\033[90m'
+    lightgrey='\033[37m'
 
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+    RESET = '\033[0m'
 
 
 #-------------------------- MAIN for SELF-TESTING -----------------------------
 if __name__ == "__main__":
 
-    print tt.blue
+    print term.blue
     print 'test'
-    print tt.RESET
+    print term.RESET
 

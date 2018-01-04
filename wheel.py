@@ -2,8 +2,8 @@
 # -*- coding: iso-8859-1 -*-
 
 
-from shapes import line, circle, quad, moveto
-from colors import Color, CLINE
+from shapes import line, circle, quad, moveto, PT0
+from colors import Color, C0, Term
 from math import hypot
 from canvas import Pt, CANVAS_HEIGHT, CANVAS_WIDTH
 
@@ -42,20 +42,20 @@ g, h, i = Pt(-tk2,  tk2), Pt(-span,tk2),  Pt(-span, -tk2)
 j, k, l = Pt(-tk2, -tk2), Pt(-tk2,-span), Pt(tk2, -span)
 
 # colors
-kr  = Color(255,  69,   0, 255)  # red kapla
+KAPRD  = Color(255,  69,   0, 255)  # red kapla
 kg  = Color(  0,  99,   0, 255)  # green kapla
 kb  = Color(  0,   0, 140, 255)  # blue kapla
 ky  = Color(255, 214,   0, 255)  # yellow kapla
-trans = Color(0,0,0,0)
+TRANS = Color(0,0,100,100)
 
 # list of vtx counterclockwise
-all_verts = (a,b,c,d,e,f,g,h,i,j,k,l)
-all_colors = (kr, kg, kb, ky)
+ALL_VERTS = (a,b,c,d,e,f,g,h,i,j,k,l)
+ALL_COLORS = (KAPRD, kg, kb, ky)
 
 def quads_from_points((a,b,c,d,e,f,g,h,i,j,k,l)):
     return ((a,b,c,d), (d,e,f,g), (g,h,i,j), (j,k,l,a))
 
-all_quads= quads_from_points(all_verts)
+ALL_QUADS= quads_from_points(ALL_VERTS)
 
 
 '''
@@ -65,94 +65,64 @@ def init_constructions():
     # construction lines
     line(Pt(-CANVAS_WIDTH*0.16,CANVAS_HEIGHT/2),
          Pt(-CANVAS_WIDTH*0.16, -CANVAS_HEIGHT/2),
-         color=CLINE)
+         color=C0)
     moveto(Pt(CANVAS_WIDTH*0.16,0))   # new current location
-    circle(radout, color=CLINE)
-    circle(radin, color=CLINE)
+    circle(radout, color=C0)
+    circle(radin, color=C0)
 
 def init_kaplas():
     moveto(Pt(CANVAS_WIDTH*0.16,0))   # new current location
-    kpl=[quad(a, b, c, d, color=trans) for q, clr in zip(all_quads,all_colors)]
+    kpl=[quad(a, b, c, d, color=TRANS) for q, clr in zip(ALL_QUADS,ALL_COLORS)]
     return(kpl)
 
 def init_spines():
     moveto(Pt(CANVAS_WIDTH*0.16,0))   # new current location
     lns = [line(*spine_from_quad(q), color=clr)
-            for q, clr in zip(all_quads,all_colors)]
+            for q, clr in zip(ALL_QUADS,ALL_COLORS)]
     return(lns)
 
+def init_side_quads():
+    return([(PT0,PT0,PT0,PT0, C0)for i in range(4)])
 
-
-
-# ########################### WIP BELLOW ######################################
 '''
 III. 2d visibility helper functions -------------------------------------------
 '''
-def spine_from_quad(q,clr):
-    return (min(q, key=lambda x: x[1]), max(q, key=lambda x: x[1]), clr)
+def spine_from_quad(q):
+    return (min(q, key=lambda x: x[1]), max(q, key=lambda x: x[1]))
+
+# WIP v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v
+def project(spines, x=-CANVAS_WIDTH*0.32):
+    # first : spines to list of points augmented with colors
+    pts_n_color =[(coord,i) for i,point in enumerate(spines) for coord in point]
+    return([(Pt(x,p.y),c)for p,c in pts_n_color])
+
+def sort_vertical(pts):
+    # sort augmented points along X first from closest (-) to furthest (+)
+    pts = sorted(pts , key=lambda e: e[0].x)
+    # sort again along Y  from upper (+) to lower (-)
+    pts = sorted(pts , key=lambda e: e[0].y, reverse=True)
+    return (pts)
+
+def is_visible(points,lines):
+    return(points)
+
+# iter through pair of coordinates in a flat list of coords to make quads -----
+def make_recs_from_points(pts):
+    p = iter(pts)
+    for i in xrange(len(pts)/2):
+        p1 = p.next()
+        p2 = p.next()
+        a = Pt(p1[0][0]-300,p1[0][1]),
+        b = Pt(p2[0][0],p1[0][1]),
+        c = Pt(p1[0][0],p2[0][1]),
+        d = Pt(p2[0][0]-300,p2[0][1])
+
+    return (a,b,c,c,d,a),(ALL_COLORS[p1[1]])
 
 
-def count(spines):
-    '''
-    first : spines to list of points
-    '''
-    pts =[coord for point in spines for coord in point]
-    pts_n_clr = zip(pts, all_color)
-    # first sort points along Y first, from upper (+) to lower (-)
-    print pts
 
-def sort_edges(edges):
-    # first sort edges along X first, from rightmost (+) to leftmost (-)
-    sorted_e = sorted(sorted_e , key=lambda e: e[1].x, reverse=True)
-    print '= Y sorted edges:'
-    for e in sorted_e:
-        for _ in e : print '    .', _
-        print ''
-    # then sort edges along Y from highest (+) to lowest (-)
-    # former X order will persist after this sorting
-    sorted_e = sorted(edges , key=lambda e: e[1].y, reverse=True)
-    print '= Y+X sorted edges:'
-    for e in sorted_e:
-        for _ in e : print '    .', _
-        print ''
-    return(sorted_e)
+# WIP ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^ ^
 
-
-# project edges section -------------------------------------------------------
-
-    '''
-    1- get shortlist of only front facing edges
-    by filtering backward oriented normal edges
-    '''
-    # facing_edges = filter_edges(get_edges(live_points, edges_colors))
-
-    '''
-    2- flip edges
-    if necessary flip end/start so highest point is first
-    '''
-    # oriented_edges = flip_edges(facing_edges)
-
-    '''
-    3- sort edges.starts :
-        highest Y
-        closest to the right CENTROID first if Y's are equal
-    '''
-    # sorted_edges = sort_edges(oriented_edges)
-
-    '''
-    4- scan edges startpoints
-    for e in sorted_edges:
-        if e.start is visible
-            ppoints.append(e.start)
-            pcolors.append(e.color)
-            for f in sorted_edges with lower edge.start(*)
-                (*)we dont have to check edges with higher y because they
-                cant be in front unless they cross current edge
-
-                if f.start.y < e.end.y
-
-
-    '''
 
 #-------------------------- MAIN for SELF-TESTING -----------------------------
 def _update(dt):

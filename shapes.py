@@ -15,17 +15,17 @@ Create a shape:
 ---------------
 set current layer, pos and angle
     _drawto = BACKGROUND  # define current Sketch new shape will be added to
-    _moveto = ORIGIN      # define current location
+    _moveto = PT0      # define current location
     _headto = 0           # define current angle in degrees
 
 call shape function : shape(geometry, color)
 example :
 
-    c = circle(radius=100, color=CLINE)
+    c = circle(radius=100, color=C0)
 
 or, if no later reference to the shape is needed, just call the function:
 
-    circle(radius=100, color=CLINE)
+    circle(radius=100, color=C0)
 
 Remove a shape
 --------------
@@ -43,15 +43,15 @@ object.vertices.
 
 from math import pi, cos, sin
 from pyglet.gl import GL_LINES, GL_TRIANGLES
-from colors import CLINE
+from colors import C0
 from canvas import  Point, Pt, BACKGROUND, BATCH
 
 
 TWOPI = 2*pi
-ORIGIN = Point(0,0)
+PT0 = Point(0,0)
 
 _drawto = BACKGROUND              # default Sketch new shapes will be added to
-_moveto = ORIGIN                  # default location
+_moveto = PT0                  # default location
 _headto = 0                       # default angle in degrees
 
 
@@ -175,10 +175,10 @@ if __name__ == "__main__":
     from canvas import CANVAS_CENTER, redraw, run
     from pyglet.clock import schedule_interval
 
-    circle(radius=100, color=CLINE)
-    line(Pt(-CANVAS_CENTER.x, 100), Pt(CANVAS_CENTER.x, 100), color=CLINE)
-    rec(w=10, h=400, color=CLINE)
-    quad(Pt(-100,100), Pt(100,100),Pt(100,-100), Pt(-100,-100), color=CLINE)
+    circle(radius=100, color=C0)
+    line(Pt(-CANVAS_CENTER.x, 100), Pt(CANVAS_CENTER.x, 100), color=C0)
+    rec(w=10, h=400, color=C0)
+    quad(Pt(-100,100), Pt(100,100),Pt(100,-100), Pt(-100,-100), color=C0)
 
     schedule_interval(_update,1.0/60)
     run()
