@@ -149,6 +149,10 @@ def update_quad_verts(quad, vtx):
         [vtx[0], vtx[1], vtx[2], vtx[2], vtx[3], vtx[0]],
         _moveto.x, _moveto.y, _headto))
 
+def update_quad_colors(quad,clr):
+        quad.colors=clr*6
+
+
 # Rec tangle -------------------------------------------------------------------
 def rec(w, h, color):
     '''
