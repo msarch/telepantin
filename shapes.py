@@ -34,11 +34,11 @@ call 'vertex_list.delete' if the shape object has been referenced :
     c.delete
 
 
-Changing a shape's color, replacing vertices
+Changing a shape's color, modifying vertices
 --------------------------------------------
-Color and vertex positions are later accessible with object.colors and
-object.vertices.
-
+Color and vertex positions are later accessible with :
+    shape.colors
+    shape.vertices
 '''
 
 from math import pi, cos, sin
@@ -112,7 +112,8 @@ def circle(radius, color):
 # Line ------------------------------------------------------------------------
 def line(point1, point2, color):
     '''
-    line from 2 points
+    adds to BATCH :
+    line from 2 points to
     '''
     l = BATCH.add(2, GL_LINES, _drawto, 'v2f/static', 'c4B/static')
     l.colors= color*2
@@ -141,7 +142,7 @@ def quad(a, b, c, d, color):
     print '+ quad :', a, b ,c ,d
     return(q) # returns the vertex_list
 
-def update_quad_verts(quad, vtx):
+def quad_verts_update(quad, vtx):
     '''
     updates kaplas vertices from 4 points
     '''
