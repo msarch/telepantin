@@ -6,6 +6,7 @@ from shapes import line, circle, quad, moveto
 from colors import Color, C0
 from math import hypot
 from canvas import Pt, CANVAS_HEIGHT, CANVAS_WIDTH
+from sidevision import spine_from_quad
 
 '''
 I. geometric data -------------------------------------------------------------
@@ -54,14 +55,6 @@ DBL_COLORS = (RED, RED,GRN,GRN,BLU,BLU,YEL,YEL)
 '''
 II. geometric helper functions ------------------------------------------------
 '''
-def spine_from_quad(q):
-    '''
-    returns maximum visible extents
-    viewed from sides
-    as a line
-    '''
-    return (min(q, key=lambda x: x[1]), max(q, key=lambda x: x[1]))
-
 def line_to_pts(lines):
     '''
     flatten a list of lines
@@ -108,6 +101,7 @@ if __name__ == "__main__":
     init_constructions()
     init_kaplas()
     init_spines()
+    init_projected_lines()
     schedule_interval(_update,1.0/60)
     run()
 

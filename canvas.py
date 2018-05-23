@@ -40,6 +40,9 @@ def redraw():
 
 @CANVAS.event
 def on_key_press(key, modifiers):
+    '''
+    # PAUSE and QUIT actions
+    '''
     if key == pyglet.window.key.SPACE:
         global CANVAS_PAUSED
         CANVAS_PAUSED = not CANVAS_PAUSED
@@ -65,7 +68,8 @@ class Sketch(pyglet.graphics.Group): # subclass with position/rotation ability
     '''
     def __init__(self,pos=CANVAS_CENTER, heading=0):  # pos=x,y coords, heading=rot. angle
         super(Sketch, self).__init__()
-        self.pos, self.heading = pos, heading
+        self.pos = pos
+        self.heading = heading
 
     def set_state(self):
         glPushMatrix()

@@ -1,4 +1,11 @@
 
+=== TODO
+
+    - for future versions : associate colors to points, 
+      this is the most natural opengl
+
+
+
     # 2D VISIBILITY ---------------------------------------------------
 
 
