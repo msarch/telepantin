@@ -15,17 +15,17 @@ Create a shape:
 ---------------
 set current layer, pos and angle
     _drawto = BACKGROUND  # define current Sketch new shape will be added to
-    _moveto = PT0      # define current location
+    _moveto = PT0         # define current location
     _headto = 0           # define current angle in degrees
 
 call shape function : shape(geometry, color)
 example :
 
-    c = circle(radius=100, color=C0)
+    c = circle(radius=100, color=DULL)
 
 or, if no later reference to the shape is needed, just call the function:
 
-    circle(radius=100, color=C0)
+    circle(radius=100, color=DULL)
 
 Remove a shape
 --------------
@@ -43,12 +43,16 @@ Color and vertex positions are later accessible with :
 
 from math import pi, cos, sin
 from pyglet.gl import GL_LINES, GL_TRIANGLES
-from colors import C0
-from canvas import  Point, Pt, BACKGROUND, BATCH
+from colors import DULL
+from canvas import  BACKGROUND, BATCH
+from collections import namedtuple
 
+# Point is used all over to store x,y coords
+Point = namedtuple('Pt', 'x y')  # name, x coord, y coord
+Pt = Point
 
 TWOPI = 2*pi
-PT0 = Point(0,0)
+PT0 = Point(0, 0)
 
 _drawto = BACKGROUND              # default Sketch new shapes will be added to
 _moveto = PT0                  # default location
@@ -69,8 +73,8 @@ def transform(pts, dx=0, dy=0, ro=0):
 
 def flatten(points):
     '''
-    flatten a list of floats
-    returns a continuous list of x(n), y(n) coordinates
+    flatten a list of points as a list of floats
+    the continuous list of x(n), y(n) coordinates
     directly usable as openGL vertex list ie: 'v2f/static'
     '''
     return([coord for point in points for coord in point])
@@ -122,7 +126,7 @@ def line(point1, point2, color):
     print '+ line : from', point1, 'to', point2
     return(l)
 
-def update_line_verts(l, vtx):
+def line_verts_update(l, vtx):
     '''
     updates kaplas vertices from 2 points
     '''
@@ -150,7 +154,7 @@ def quad_verts_update(quad, vtx):
         [vtx[0], vtx[1], vtx[2], vtx[2], vtx[3], vtx[0]],
         _moveto.x, _moveto.y, _headto))
 
-def update_quad_colors(quad,clr):
+def quad_colors_update(quad,clr):
         quad.colors=clr*6
 
 
@@ -180,10 +184,10 @@ if __name__ == "__main__":
     from canvas import CANVAS_CENTER, redraw, run
     from pyglet.clock import schedule_interval
 
-    circle(radius=100, color=C0)
-    line(Pt(-CANVAS_CENTER.x, 100), Pt(CANVAS_CENTER.x, 100), color=C0)
-    rec(w=10, h=400, color=C0)
-    quad(Pt(-100,100), Pt(100,100),Pt(100,-100), Pt(-100,-100), color=C0)
+    circle(radius=100, color=DULL)
+    line(Pt(-CANVAS_CENTER.x, 100), Pt(CANVAS_CENTER.x, 100), color=DULL)
+    rec(w=10, h=400, color=DULL)
+    quad(Pt(-100,100), Pt(100,100),Pt(100,-100), Pt(-100,-100), color=DULL)
 
     schedule_interval(_update,1.0/60)
     run()

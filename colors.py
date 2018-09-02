@@ -9,10 +9,11 @@ Color = namedtuple('Color', 'r g b a') # RGB+ alpha (0 to 255)
 
 BLACK = Color(  0,   0,   0, 255)
 WHITE = Color(255, 255, 255, 255)
-C0 = Color(125, 125, 100, 100)   # construction lines color
-BACKGROUND_COLOR = Color(0, 0, 0, 255)
+DULL  = Color(125, 125, 100, 100)   # construction lines color
+TRANS = Color( 50,  50,  50, 100)
 
 print '+ colors.py loaded'
+
 
 '''
 class for printing terminal text in colors,

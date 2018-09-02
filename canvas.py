@@ -6,27 +6,17 @@
 import pyglet
 from pyglet.gl import *
 from pyglet.graphics import Batch
-from collections import namedtuple
-from colors import *
-
-# Point is used all over to store x,y coords
-Point = namedtuple('Pt', 'x y')  # name, x coord, y coord
-Pt = Point
-
-Edge = namedtuple('Edge', 'start end') # 2 pts
-
-BACKGROUND_COLOR = BLACK
+from colors import BLACK
 
 
 # Pyglet Window ---------------------------------------------------------------
 CANVAS = pyglet.window.Window(fullscreen=True)      # The Pyglet Window
 CANVAS_WIDTH, CANVAS_HEIGHT = CANVAS.width, CANVAS.height
-CANVAS_CENTER = Point(CANVAS_WIDTH/2, CANVAS_HEIGHT/2)
-CANVAS_BOTTOM_LEFT = Point(0,0)
+CANVAS_CENTER = (CANVAS_WIDTH/2, CANVAS_HEIGHT/2)
 CANVAS_PAUSED = False                               # canvas initial state
 
 # OpenGL stuff
-glClearColor(*BACKGROUND_COLOR)                     # background color
+glClearColor(*BLACK)                     # background color
 glEnable(GL_LINE_SMOOTH)
 glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE)
 glEnable(GL_BLEND)                                  # transparency
@@ -74,7 +64,7 @@ class Sketch(pyglet.graphics.Group): # subclass with position/rotation ability
     def set_state(self):
         glPushMatrix()
         glRotatef(self.heading, 0, 0, 1) # GL rot. in degrees; x,y,z of rot. axis
-        glTranslatef(self.pos.x, self.pos.y, 0) # translate after rotation
+        glTranslatef(self.pos[0], self.pos[1], 0) # translate after rotation
 
     def unset_state(self):
         glPopMatrix()
